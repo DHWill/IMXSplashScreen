@@ -14,6 +14,7 @@
 int timeForFade = 66;	//frames /30FPS //2Seconds
 int gloopFrame = 0;
 int fpsIntervalMillis = 1./30*1000;	//30fps
+float duration = 2.0;
 
 struct pipenloop{
 	GstElement* p;
@@ -45,9 +46,8 @@ static gboolean on_message(GstBus *bus, GstMessage *message, gpointer user_data)
 
 
 static gboolean query_position(pipenloop* _pnl){
-	std::cout << gloopFrame  << std::endl;
 	if(gloopFrame >= timeForFade){
-		std::cout << "EOS" << std::endl;
+//		std::cout << "EOS" << std::endl;
 		gst_element_set_state(_pnl->p, GST_STATE_NULL);
 		g_main_loop_quit((GMainLoop*)_pnl->l);
 		return FALSE;
@@ -70,12 +70,23 @@ static gboolean query_position(pipenloop* _pnl){
 
 int main(int argc, char *argv[]) {
     gst_init(&argc, &argv);
-    /*
-    if (argc < 2) {
-          g_print("Usage: %s <image-file>\n", argv[0]);
+    std::string fileLocation = "";
+
+    if (argc < 3) {
+          g_print("Usage: %s <image-file> <duration-seconds>\n", argv[0]);
           return -1;
       }
-      */
+    else{
+    	fileLocation = argv[1];
+    	char *endptr;
+        duration = strtof(argv[2], &endptr);
+        timeForFade = fpsIntervalMillis * duration;
+        if (*endptr != '\0')
+            printf("%s is not convertible to float\n", argv[1]);
+        else
+            printf("%f\n", duration); //0.000000
+    }
+
     //gst-launch-1.0 filesrc location=PXL_20240116_150403266.jpg ! jpegdec ! videoconvert ! imagefreeze num-buffers=200 ! waylandsink window-width=2160 window-height=3840
 
     std::cout << "CreateElements" << std::endl;
@@ -135,8 +146,10 @@ int main(int argc, char *argv[]) {
     g_value_set_int(&numBuffers, 1);
     g_object_set_property(G_OBJECT(imagefreeze), "is-live", &numBuffers);
 
-    std::cout << "Set:File" << std::endl;
-    g_object_set(G_OBJECT(filesrc), "location", "/home/root/player/PXL_20240116_150403266.jpg", NULL);
+
+    g_object_set(G_OBJECT(filesrc), "location", fileLocation.c_str(), NULL);
+    std::cout << "Set:File = " << fileLocation << std::endl;
+
 
     std::cout << "AddElements" << std::endl;
     gst_bin_add_many(GST_BIN(pipeline), filesrc, jpegdec, alpha, imagefreeze, glimagesink, NULL);
