@@ -15,6 +15,11 @@ int timeForFade = 66;	//frames /30FPS //2Seconds
 int gloopFrame = 0;
 int fpsIntervalMillis = 1./30*1000;	//30fps
 
+struct pipenloop{
+	GstElement* p;
+	GMainLoop* l;
+};
+
 static gboolean on_message(GstBus *bus, GstMessage *message, gpointer user_data) {
     switch (GST_MESSAGE_TYPE(message)) {
         case GST_MESSAGE_EOS:
@@ -39,13 +44,25 @@ static gboolean on_message(GstBus *bus, GstMessage *message, gpointer user_data)
 
 
 
-static gboolean query_position(GstElement *alpha){
+static gboolean query_position(pipenloop* _pnl){
 	std::cout << gloopFrame  << std::endl;
+	if(gloopFrame >= timeForFade){
+		std::cout << "EOS" << std::endl;
+		gst_element_set_state(_pnl->p, GST_STATE_NULL);
+		g_main_loop_quit((GMainLoop*)_pnl->l);
+		return FALSE;
+//		g_main_loop_quit((GMainLoop*)user_data);
+	}
+	/*
     GValue alpha = G_VALUE_INIT;
     g_value_init(&alpha, G_TYPE_FLOAT);
     g_value_set_float(&alpha, gloopFrame/timeForFade);
     g_object_set_property(G_OBJECT(pipeline), "alpha", &alpha);
+    */
+
     gloopFrame += 1;
+
+
     return TRUE;
 }
 
@@ -53,6 +70,12 @@ static gboolean query_position(GstElement *alpha){
 
 int main(int argc, char *argv[]) {
     gst_init(&argc, &argv);
+    /*
+    if (argc < 2) {
+          g_print("Usage: %s <image-file>\n", argv[0]);
+          return -1;
+      }
+      */
     //gst-launch-1.0 filesrc location=PXL_20240116_150403266.jpg ! jpegdec ! videoconvert ! imagefreeze num-buffers=200 ! waylandsink window-width=2160 window-height=3840
 
     std::cout << "CreateElements" << std::endl;
@@ -89,6 +112,7 @@ int main(int argc, char *argv[]) {
     gst_value_array_append_value(&new_dimensions, &width);
     gst_value_array_append_value(&new_dimensions, &height);
 
+
     std::cout << "Set:Width/Height" << std::endl;
     g_object_set_property(G_OBJECT(glimagesink), "render-rectangle", &new_dimensions);
 
@@ -100,11 +124,16 @@ int main(int argc, char *argv[]) {
     std::cout << "Set:Width/Height" << std::endl;
     g_object_set_property(G_OBJECT(glimagesink), "sync", &sync);
 
+   /*
     GValue numBuffers = G_VALUE_INIT;
     g_value_init(&numBuffers, G_TYPE_INT);
     g_value_set_int(&numBuffers, 100);
     g_object_set_property(G_OBJECT(imagefreeze), "num-buffers", &numBuffers);
-
+*/
+    GValue numBuffers = G_VALUE_INIT;
+    g_value_init(&numBuffers, G_TYPE_INT);
+    g_value_set_int(&numBuffers, 1);
+    g_object_set_property(G_OBJECT(imagefreeze), "is-live", &numBuffers);
 
     std::cout << "Set:File" << std::endl;
     g_object_set(G_OBJECT(filesrc), "location", "/home/root/player/PXL_20240116_150403266.jpg", NULL);
@@ -120,6 +149,7 @@ int main(int argc, char *argv[]) {
     GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
     gst_bus_add_signal_watch(bus);
 
+
     std::cout << "Create gLoop" << std::endl;
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
@@ -127,8 +157,13 @@ int main(int argc, char *argv[]) {
     std::cout << "Set Pipe Playing" << std::endl;
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
+
+    pipenloop pnl;
+    pnl.p = pipeline;
+    pnl.l = loop;
+
     g_signal_connect(bus, "message", G_CALLBACK(on_message), loop);	//Add EOS
-    g_timeout_add(fpsIntervalMillis, (GSourceFunc) query_position, alpha);     //Add Timer Callback
+    g_timeout_add(fpsIntervalMillis, (GSourceFunc) query_position, &pnl);     //Add Timer Callback
 
     std::cout << "Run main GLoop" << std::endl;
     g_main_loop_run(loop);
