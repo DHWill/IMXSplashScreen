@@ -46,7 +46,7 @@ static gboolean on_message(GstBus *bus, GstMessage *message, gpointer user_data)
 
 
 static gboolean query_position(pipenloop* _pnl){
-	if(gloopFrame >= timeForFade){
+	if(gloopFrame >= 66){
 //		std::cout << "EOS" << std::endl;
 		gst_element_set_state(_pnl->p, GST_STATE_NULL);
 		g_main_loop_quit((GMainLoop*)_pnl->l);
@@ -59,7 +59,7 @@ static gboolean query_position(pipenloop* _pnl){
     g_value_set_float(&alpha, gloopFrame/timeForFade);
     g_object_set_property(G_OBJECT(pipeline), "alpha", &alpha);
     */
-
+//	std::cout << gloopFrame << std::endl;
     gloopFrame += 1;
 
 
@@ -93,10 +93,10 @@ int main(int argc, char *argv[]) {
     GstElement *pipeline = gst_pipeline_new("pipeline");
     GstElement *filesrc = gst_element_factory_make("filesrc", "filesrc");
     GstElement *jpegdec = gst_element_factory_make("jpegdec", "jpegdec");
-//    GstElement *videoconvert = gst_element_factory_make("videoconvert", "videoconvert");
     GstElement *imagefreeze = gst_element_factory_make("imagefreeze", "imagefreeze");
     GstElement *alpha = gst_element_factory_make("alpha", "alpha");
     GstElement *glimagesink = gst_element_factory_make("glimagesink", "glimagesink");
+    GstElement *waylandsink = gst_element_factory_make("waylandsink", "waylandsink");
 
 
     std::cout << "CreateWidth" << std::endl;
@@ -116,6 +116,7 @@ int main(int argc, char *argv[]) {
     g_value_init(&top, G_TYPE_INT);
     g_value_set_int(&top, 0);
 
+    /*
     GValue new_dimensions = G_VALUE_INIT;
     g_value_init(&new_dimensions, GST_TYPE_ARRAY);
     gst_value_array_append_value(&new_dimensions, &top);
@@ -134,6 +135,7 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Set:Width/Height" << std::endl;
     g_object_set_property(G_OBJECT(glimagesink), "sync", &sync);
+	*/
 
    /*
     GValue numBuffers = G_VALUE_INIT;
@@ -141,10 +143,15 @@ int main(int argc, char *argv[]) {
     g_value_set_int(&numBuffers, 100);
     g_object_set_property(G_OBJECT(imagefreeze), "num-buffers", &numBuffers);
 */
+    /*
     GValue numBuffers = G_VALUE_INIT;
     g_value_init(&numBuffers, G_TYPE_INT);
     g_value_set_int(&numBuffers, 1);
     g_object_set_property(G_OBJECT(imagefreeze), "is-live", &numBuffers);
+    */
+
+    g_object_set_property(G_OBJECT(waylandsink), "window-width", &width);
+    g_object_set_property(G_OBJECT(waylandsink), "window-height", &height);
 
 
     g_object_set(G_OBJECT(filesrc), "location", fileLocation.c_str(), NULL);
@@ -152,10 +159,10 @@ int main(int argc, char *argv[]) {
 
 
     std::cout << "AddElements" << std::endl;
-    gst_bin_add_many(GST_BIN(pipeline), filesrc, jpegdec, alpha, imagefreeze, glimagesink, NULL);
+    gst_bin_add_many(GST_BIN(pipeline), filesrc, jpegdec, alpha, imagefreeze, waylandsink, NULL);
 
     std::cout << "Link Elements" << std::endl;
-    gst_element_link_many (filesrc, jpegdec, imagefreeze, glimagesink, NULL);
+    gst_element_link_many (filesrc, jpegdec, imagefreeze, waylandsink, NULL);
 
 
     std::cout << "Set bus Message Watch" << std::endl;

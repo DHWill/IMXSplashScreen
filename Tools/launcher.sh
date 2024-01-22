@@ -15,4 +15,4 @@ while [ ! -e  $XDG_RUNTIME_DIR/wayland-0 ] ; do sleep 0.1; done
 export XDG_RUNTIME_DIR=/run/user/0
 export DISPLAY=:0.0
 
-GST_DEBUG=3 /home/root/player/helloworld-debug
+GST_DEBUG=3 /home/root/player/helloworld $1 $2

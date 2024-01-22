@@ -1,7 +1,8 @@
 #!/bin/bash
 
 INDEX=0
-SPLASH_APP="/home/root/player/SplashScreen"  # Replace with the name or path of your application
+SPLASH_APP="/home/root/player/SplashScreen"
+PLAYER_APP="/home/root/player/launcher.sh"
 
 folder="/home/root/player/AW"
 
@@ -28,7 +29,13 @@ while true; do
 	SPLASH_IMAGE=$folder"/"${directories[INDEX]}"/splash.jpg"
 
 	if [ -e $SPLASH_IMAGE ]; then
-  	   $SPLASH_APP $folder"/"${directories[INDEX]}"/splash.jpg" 2.0
+  	   $SPLASH_APP $folder"/"${directories[INDEX]}"/splash.jpg" 4.5 &
+	   killall helloworld-debug &
+	   killall helloworld &
+	   sleep 1
+#	   $SPLASH_APP $folder"/"${directories[INDEX]}"/splash.jpg" 1 &
+	   $PLAYER_APP $folder"/"${directories[INDEX]}"/Video.mp4" $folder"/"${directories[INDEX]}"/video_states.json" & >/dev/null
+	   
 	else
 	   echo "no splash image in: "$SPLASH_IMAGE
 	fi
@@ -39,5 +46,7 @@ while true; do
     fi
 
     sleep 0.33
+
 done
+
 
